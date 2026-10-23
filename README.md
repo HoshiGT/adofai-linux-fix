@@ -6,13 +6,14 @@
 
 > **从底层注入到全套修复的完全体解决方案**  
 > 一键解决《冰与火之舞》（A Dance of Fire and Ice, ADOFAI）在 Linux / Steam Deck 原生运行环境下的所有顽疾：着色器崩溃、模组管理器方块字乱码、滑动条无法拖动、以及 Together 联机模组反作弊拦截。
-
+> Linux 无法注入 dll 安装 mod ？无妨！我们这里可以直接让 Linux 也能跑 Windows 里面 UMM 的 mod 
+ 
 [中文文档](#中文文档) | [English Documentation](#english-documentation)
 
 ---
 
 <a name="中文文档"></a>
-## 🇨🇳 中文说明
+## 中文说明
 
 ### 📌 痛点背景与修复原理
 
@@ -65,7 +66,7 @@ cd adofai-linux-fix
 ---
 
 <a name="english-documentation"></a>
-## 🇬🇧 English Documentation
+## English Documentation
 
 ### 📌 Overview
 
