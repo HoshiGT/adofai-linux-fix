@@ -1,0 +1,9 @@
+{
+  "Id": "LinuxCrashFix",
+  "DisplayName": "Linux Native Crash Fix",
+  "Author": "Antigravity",
+  "Version": "1.0.0",
+  "ManagerVersion": "0.22.0.0",
+  "AssemblyName": "LinuxCrashFix.dll",
+  "EntryMethod": "LinuxCrashFix.Main.Load"
+}
