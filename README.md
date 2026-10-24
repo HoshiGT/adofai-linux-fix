@@ -38,7 +38,7 @@ sudo apt install ./adofai-linux-fix_1.1.0_all.deb
 
 安装后即可从应用菜单启动 **ADOFAI Mod Manager**，或使用命令行 `adofai-fix` / `adofai-modmgr`。包内含预编译模组与注入器（`Architecture: all`），构建产物在只读系统目录下会自动落到 `~/.local/share/adofai-linux-fix/dist`。
 
-> 其他发行版：Fedora/openSUSE 可等 RPM 或用 `alien` 转换；Arch 系（含 SteamOS）与所有发行版均可**源码直跑**（见方式一，零编译依赖即可用 GUI 管理器）。
+> 其他发行版：Arch 系（含 SteamOS）与所有发行版均可**源码直跑**（见方式一，零编译依赖即可用 GUI 管理器）。RPM / AUR / Flatpak 等打包欢迎直接提 PR（放进 `packaging/` 目录即可）—— 社区的手最适合干这个。
 
 #### 方式一：一键自动修复（推荐）
 
@@ -113,7 +113,7 @@ sudo apt install ./adofai-linux-fix_1.1.0_all.deb
 
 Launch **ADOFAI Mod Manager** from the app menu, or use the `adofai-fix` / `adofai-modmgr` commands. Build outputs fall back to `~/.local/share/adofai-linux-fix/dist` when installed read-only.
 
-> Other distros: run from source (Method 1) — the GUI manager needs no compilation. RPM/AUR packaging may come later.
+> Other distros: run from source (Method 1) — the GUI manager needs no compilation. PRs adding RPM / AUR / Flatpak packaging (under `packaging/`) are always welcome.
 
 #### Method 1: All-in-One CLI Tool
 ```bash
