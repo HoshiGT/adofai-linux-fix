@@ -35,7 +35,7 @@ def print_banner():
     banner = f"""{C_CYAN}{C_BOLD}
     ╔════════════════════════════════════════════════════════════════╗
     ║       ADOFAI Linux Native Toolkit (完全体全自动修复套件)       ║
-    ║   Shader Crash Skip • IMGUI Slider Fix • Together Bypass • CJK ║
+    ║   Shader Crash Skip • Together Bypass • CJK Font • Mod Manager ║
     ╚════════════════════════════════════════════════════════════════╝
     {C_RESET}{C_YELLOW}Version: {VERSION} | Author: {AUTHOR}{C_RESET}
     """
@@ -353,7 +353,6 @@ class AdoFaiToolkit:
         st = self.status()
         print(f"\n{C_GREEN}{C_BOLD}✨ 全自动化修复全部完成！{C_RESET}")
         print(f" • Shader 预热崩溃拦截: {C_GREEN}已启用{C_RESET}")
-        print(f" • IMGUI 连续拖拽与高分屏优化: {C_GREEN}已启用{C_RESET}")
         print(f" • Together 联机反作弊白名单绕过: {C_GREEN}已启用{C_RESET}")
         print(f" • 中文字体方块乱码消除: {C_GREEN}已配置 ({st['ui_font']}){C_RESET}")
         print(f"\n{C_YELLOW}您现在可以直接启动 ADOFAI 游戏！{C_RESET}\n")

@@ -23,7 +23,6 @@
 | :--- | :--- | :--- |
 | **启动/进关卡瞬间闪退崩溃** | Unity 引擎调用 `Shader.WarmupAllShaders()` 触发 Linux Mesa/RADV/NVIDIA 显卡驱动段错误。 | Harmony 动态拦截，跳过有缺陷的预热函数。 |
 | **UMM 界面中文字体全为方块（豆腐块）** | Unity IMGUI 在 Linux 下默认英文字体缺少中日韩（CJK）字形表。 | 自动识别系统安装的 CJK 字体并写入 UMM 配置。 |
-| **窗口大小/缩放滑动条无法拖拽** | Unity IMGUI 原生 `SliderHandler` 存在 `scrollTroughSide != 0` 缺陷：滑块追上光标瞬间即强制清空独占焦点（`hotControl = 0`），导致只能单次点击跳转，无法连续拖动。 | 自研独立 Control ID 双向事件分发体系，实现全行程平滑连续拖动，并提供 `[-]`/`[+]` 步进与常用分辨率/缩放预设。 |
 | **Together 模组提示禁止使用并锁死联机** | Together 联机模组在内存解密后，扫描 UMM 模组列表并校验内置白名单，第三方模组会被标记为违规。 | 运行时动态拦截解密后的 `Together.dll`，注入白名单并屏蔽 `CaptureDisallowedMods` 拦截函数。 |
 
 ---
@@ -99,7 +98,6 @@ Running *A Dance of Fire and Ice* (ADOFAI) natively on Linux or Steam Deck often
 
 This toolkit provides an all-in-one fix and injection suite:
 1. **Shader Warmup GPU Crash Bypass**: Skips `Shader.WarmupAllShaders()` to prevent crashes on Vulkan / Mesa / RADV / NVIDIA drivers.
-2. **Continuous Drag Sliders & DPI Scaling**: Completely rewrites the IMGUI slider control flow using canonical Control ID capture. Smoothly drag sliders with mouse lock, direct text input, fine-tuning buttons, and 1080p/2K/4K presets.
 3. **Together (TUF) Multiplayer Whitelist Bypass**: Dynamically intercepts the decrypted `Together.dll` in memory, adds `LinuxCrashFix` to `AllowedMods`, clears `CapturedMods`, and suppresses `CaptureDisallowedMods()`.
 4. **CJK Font Fix**: Auto-configures native Chinese/Japanese/Korean fallback fonts (DejaVu Sans / Noto Sans CJK / WenQuanYi) to prevent tofu blocks (`□□□`).
 
