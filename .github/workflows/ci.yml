@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python syntax check
+        run: |
+          python3 -m py_compile adofai_fix.py
+          python3 -m py_compile adofai_modmgr.py
+
+      - name: Shell syntax check
+        run: |
+          bash -n install.sh
+          bash -n scripts/build.sh
+          bash -n scripts/build_injector.sh
+
+      - name: Verify dist package
+        run: |
+          test -f dist/LinuxCrashFix/Info.json
+          test -f dist/LinuxCrashFix/LinuxCrashFix.dll
+
+  release:
+    # 发布编译产物需要游戏目录内的 Unity / UMM 程序集（闭源，不可在 CI 获取），
+    # 因此 CI 仅打包已提交的 dist/，编译在本地由 scripts/build.sh 完成。
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package mod
+        run: |
+          cd dist
+          zip -r "LinuxCrashFix-${GITHUB_REF_NAME}.zip" LinuxCrashFix/
+
+      - name: Build deb
+        run: ./packaging/deb/build_deb.sh
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/LinuxCrashFix-${GITHUB_REF_NAME}.zip" \
+            "packaging/deb/build/adofai-linux-fix_*.deb" \
+            --title "LinuxCrashFix ${GITHUB_REF_NAME}" \
+            --generate-notes

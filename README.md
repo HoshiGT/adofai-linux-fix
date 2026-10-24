@@ -30,6 +30,16 @@
 
 ### 🚀 快速使用
 
+#### 方式零：deb 包（Debian / Ubuntu 系）
+
+```bash
+sudo apt install ./adofai-linux-fix_1.1.0_all.deb
+```
+
+安装后即可从应用菜单启动 **ADOFAI Mod Manager**，或使用命令行 `adofai-fix` / `adofai-modmgr`。包内含预编译模组与注入器（`Architecture: all`），构建产物在只读系统目录下会自动落到 `~/.local/share/adofai-linux-fix/dist`。
+
+> 其他发行版：Fedora/openSUSE 可等 RPM 或用 `alien` 转换；Arch 系（含 SteamOS）与所有发行版均可**源码直跑**（见方式一，零编译依赖即可用 GUI 管理器）。
+
 #### 方式一：一键自动修复（推荐）
 
 直接克隆本仓库并执行交互式配置工具：
@@ -62,6 +72,21 @@ cd adofai-linux-fix
 - **`[3] 修复中文字体`**：列出并选择本机字体库中的合适中文字体写入 `Params.xml`。
 - **`[4] 源码一键编译`**：调用本地 Mono 编译器重新生成 DLL。
 - **`[5] 环境诊断检测`**：检查 UMM 注入状态、核心文件备份与驱动信息。
+- **`[6] 打开图形界面`**：启动下方拖拽式模组管理器。
+
+### 🖱️ 图形界面模组管理器 (`adofai_modmgr.py`)
+
+基于 GTK4（系统自带 PyGObject，零 pip 依赖）的 UMM 全功能管理前端，三个标签页对应 UMM Windows 安装器风格：
+
+```bash
+./adofai_modmgr.py          # 打开图形界面
+```
+
+- **多语言**：界面支持中文 / English / 한국어，跟随系统 locale 自动选择，标题栏下拉即时切换并持久化（CLI 输出同步跟随）；
+- **模组页**：多列列表（启用 / 名称 / 版本 / 作者 / 文件夹），拖入 Mod 的 `.zip`（或含 `Info.json` 的文件夹）即安装，支持根目录/嵌套两种布局；升级时自动替换旧版本并清理残留 DLL；一键开关（写入 UMM `Params.xml`）、卸载移入回收站；
+- **日志页**：环境诊断（UMM 注入状态、`Params.xml`、游戏进程、UMM Log.txt 末尾）与全部操作的时间戳日志；
+- **安装器页**：UMM 注入管理 —— **游戏目录选择**（手动指定 / **全局搜索**：常见路径 + Steam `libraryfolders.vdf` 全部库 + HOME/挂载点限深扫描；结果标注构建类型（Linux 原生 / Windows 版 / 双版本）并按原生优先排序，多结果弹窗任选，选择结果持久化）、UMM 版本 / 注入状态 / 原始备份一览，一键 **注入 UMM**（往核心程序集嵌入启动桩，自动备份）、**卸载补丁**、**恢复原文件**，全新机器可从 UMM zip 安装运行时。注入由 `src/UMMInjector.cs`（与官方安装器相同的 dnlib 手法）经 `mono` 完成，缺失时自动编译；
+- 纯命令行接口：`--list` / `--install <zip>` / `--toggle <Id> on|off` / `--remove <文件夹名>` / `--umm status|inject|unpatch|restore`。
 
 ---
 
@@ -80,6 +105,16 @@ This toolkit provides an all-in-one fix and injection suite:
 
 ### 📦 Installation
 
+#### Method 0: deb package (Debian / Ubuntu based)
+
+```bash
+sudo apt install ./adofai-linux-fix_1.1.0_all.deb
+```
+
+Launch **ADOFAI Mod Manager** from the app menu, or use the `adofai-fix` / `adofai-modmgr` commands. Build outputs fall back to `~/.local/share/adofai-linux-fix/dist` when installed read-only.
+
+> Other distros: run from source (Method 1) — the GUI manager needs no compilation. RPM/AUR packaging may come later.
+
 #### Method 1: All-in-One CLI Tool
 ```bash
 git clone https://github.com/HoshiGT/adofai-linux-fix.git
@@ -97,6 +132,16 @@ Requires Mono C# compiler (`mcs`):
 ./scripts/build.sh
 ```
 
+### 🖱️ GUI Mod Manager
+
+A GTK4 (PyGObject, zero pip dependencies) full-featured UMM front-end styled after the UMM Windows installer, localized in **中文 / English / 한국어** (follows the system locale, switchable live from the header bar, persisted). Three tabs: **Mods** (multi-column list with enable toggles, drag-and-drop zip/folder install, trash-safe uninstall), **Log** (diagnostics + timestamped operation log) and **Installer** (game directory picker with **global search** — common paths, every Steam library from `libraryfolders.vdf`, and bounded HOME/mount-point scans; results labeled Linux-native / Windows / dual build; multiple hits present a chooser, and the choice persists — plus inject / unpatch / restore UMM into the game's core assembly with automatic `.original_` backup; runtime files can be installed from a UMM zip).
+
+```bash
+./adofai_modmgr.py
+```
+
+CLI equivalents: `--list`, `--install <zip>`, `--toggle <Id> on|off`, `--remove <folder>`, `--umm status|inject|unpatch|restore`. The injector (`src/UMMInjector.cs`, same dnlib technique as the official installer) is compiled by `scripts/build_injector.sh` and invoked via `mono`; it is rebuilt automatically when missing.
+
 ---
 
 ### 📂 Project Structure
@@ -104,13 +149,18 @@ Requires Mono C# compiler (`mcs`):
 ```
 adofai-linux-fix/
 ├── src/
-│   └── LinuxCrashFix.cs         # C# Harmony patches & IMGUI controls
+│   ├── LinuxCrashFix.cs         # C# Harmony patches & IMGUI controls
+│   └── UMMInjector.cs           # UMM assembly injector (dnlib, same as official installer)
 ├── dist/
 │   ├── LinuxCrashFix/           # Pre-built mod folder
-│   └── LinuxCrashFix-v1.0.0.zip # UMM drag-and-drop archive
+│   ├── LinuxCrashFix-v1.0.0.zip # UMM drag-and-drop archive
+│   └── UMMInjector.exe          # Compiled injector (run with mono)
 ├── scripts/
-│   └── build.sh                 # Mono compilation script
+│   ├── build.sh                 # Mono compilation script (mod)
+│   └── build_injector.sh        # Mono compilation script (injector)
 ├── adofai_fix.py                # Zero-dependency Python CLI / TUI toolkit
+├── adofai_modmgr.py             # GTK4 UMM mod manager (GUI + CLI)
+├── packaging/deb/build_deb.sh   # Debian package builder
 ├── install.sh                   # Fast launcher script
 ├── LICENSE                      # MIT License
 └── README.md                    # Bilingual documentation

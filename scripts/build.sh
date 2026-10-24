@@ -7,8 +7,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 SRC_FILE="$ROOT_DIR/src/LinuxCrashFix.cs"
-DIST_DIR="$ROOT_DIR/dist/LinuxCrashFix"
-OUTPUT_DLL="$DIST_DIR/LinuxCrashFix.dll"
 
 # Potential ADOFAI installation paths
 SEARCH_PATHS=(
@@ -50,6 +48,15 @@ if ! command -v mcs &>/dev/null; then
     exit 1
 fi
 
+# deb 安装到 /usr 后仓库目录只读: 构建产物落到用户数据目录
+OUTROOT="$ROOT_DIR/dist"
+if ! mkdir -p "$OUTROOT" 2>/dev/null || [[ ! -w "$OUTROOT" ]]; then
+    OUTROOT="$HOME/.local/share/adofai-linux-fix/dist"
+    mkdir -p "$OUTROOT"
+fi
+DIST_DIR="$OUTROOT/LinuxCrashFix"
+OUTPUT_DLL="$DIST_DIR/LinuxCrashFix.dll"
+
 mkdir -p "$DIST_DIR"
 
 echo "[*] Compiling $SRC_FILE..."
@@ -72,9 +79,9 @@ echo "[+] Compilation successful: $OUTPUT_DLL ($(stat -c%s "$OUTPUT_DLL") bytes)
 
 # Create release zip
 if command -v zip &>/dev/null; then
-    cd "$ROOT_DIR/dist"
+    cd "$OUTROOT"
     ZIP_NAME="LinuxCrashFix-v1.0.0.zip"
     rm -f "$ZIP_NAME"
     zip -r "$ZIP_NAME" LinuxCrashFix/ >/dev/null
-    echo "[+] Created UMM-ready package: $ROOT_DIR/dist/$ZIP_NAME"
+    echo "[+] Created UMM-ready package: $OUTROOT/$ZIP_NAME"
 fi

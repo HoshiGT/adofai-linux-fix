@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Optional, List, Tuple
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 AUTHOR = "Antigravity & Hoshi"
 
 # ANSI Colors
@@ -41,9 +41,9 @@ def print_banner():
     """
     print(banner)
 
-def find_adofai_dir() -> Optional[Path]:
-    """Auto-detect ADOFAI installation directory across common Linux / Steam Deck paths."""
-    candidates = [
+def known_adofai_candidates() -> List[Optional[Path]]:
+    """常见 ADOFAI 安装路径候选（含 ADOFAI_PATH 环境变量）。"""
+    return [
         os.environ.get("ADOFAI_PATH"),
         Path.home() / ".steam/debian-installation/steamapps/common/A Dance of Fire and Ice",
         Path.home() / ".steam/steam/steamapps/common/A Dance of Fire and Ice",
@@ -51,12 +51,121 @@ def find_adofai_dir() -> Optional[Path]:
         Path.home() / ".var/app/com.valvesoftware.Steam/data/Steam/steamapps/common/A Dance of Fire and Ice",
         Path("/var/lib/flatpak/app/com.valvesoftware.Steam/data/Steam/steamapps/common/A Dance of Fire and Ice"),
     ]
-    for c in candidates:
+
+
+def find_adofai_dir() -> Optional[Path]:
+    """Auto-detect ADOFAI installation directory across common Linux / Steam Deck paths."""
+    for c in known_adofai_candidates():
         if c:
             p = Path(c).expanduser().resolve()
             if (p / "ADanceOfFireAndIce").is_file() or (p / "A Dance of Fire and Ice.exe").is_file():
                 return p
     return None
+
+
+def detect_build_type(game_dir) -> str:
+    """检测安装目录的构建类型: 'linux' / 'windows' / 'both' / 'unknown'。"""
+    d = Path(game_dir)
+    linux = (d / "ADanceOfFireAndIce").is_file() or (d / "ADanceOfFireAndIce.x86_64").is_file()
+    windows = (d / "A Dance of Fire and Ice.exe").is_file()
+    if linux and windows:
+        return "both"
+    if linux:
+        return "linux"
+    if windows:
+        return "windows"
+    return "unknown"
+
+
+def build_type_label(game_dir) -> str:
+    """构建类型的中文标签（用于搜索结果展示）。"""
+    return {
+        "linux": "Linux 原生版",
+        "windows": "Windows 版 (Proton/Wine)",
+        "both": "Linux + Windows 双版本",
+    }.get(detect_build_type(game_dir), "")
+
+
+def find_all_adofai_dirs(home_max_depth: int = 4, media_max_depth: int = 6) -> List[Path]:
+    """全局搜索本机所有 ADOFAI 安装目录。
+
+    依次: 常见路径 → Steam libraryfolders.vdf 声明的全部库 → HOME / 挂载点限深扫描。
+    返回去重后的目录列表 (Linux 原生/双版本在前, Windows 版在后)。
+    """
+    import re
+    import getpass
+
+    found: List[Path] = []
+    seen = set()
+
+    def add(c) -> None:
+        try:
+            p = Path(c).expanduser()
+            if not p.is_dir():
+                return
+            p = p.resolve()
+        except Exception:
+            return
+        if p in seen or get_managed_dir(p) is None:
+            return
+        seen.add(p)
+        found.append(p)
+
+    for c in known_adofai_candidates():
+        if c:
+            add(c)
+
+    # Steam 声明的所有库目录 (自定义库位置也能覆盖)
+    for base in (Path.home() / ".steam/steam",
+                 Path.home() / ".steam/debian-installation",
+                 Path.home() / ".local/share/Steam",
+                 Path.home() / ".var/app/com.valvesoftware.Steam/data/Steam",
+                 Path("/var/lib/flatpak/app/com.valvesoftware.Steam/data/Steam")):
+        try:
+            text = (base / "steamapps/libraryfolders.vdf").read_text(
+                encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        for m in re.finditer(r'"path"\s+"([^"]+)"', text):
+            lib = m.group(1).replace("\\\\", "/")
+            add(Path(lib) / "steamapps/common/A Dance of Fire and Ice")
+
+    skip_names = {".steam", ".cache", ".cargo", ".rustup", ".npm", ".bun",
+                  ".docker", ".kube", ".git", "__pycache__", "node_modules",
+                  "snap", ".flatpak", ".var", ".config", ".local",
+                  "downloading", "workshop", "shadercache", "compatdata",
+                  "lost+found"}
+
+    def scan(root: Path, max_depth: int) -> None:
+        def walk(directory: Path, level: int) -> None:
+            try:
+                entries = list(os.scandir(directory))
+            except OSError:
+                return
+            for entry in entries:
+                try:
+                    if not entry.is_dir(follow_symlinks=False):
+                        continue
+                except OSError:
+                    continue
+                name = entry.name.lower()
+                if "dance of fire" in name or name == "adanceoffireandice":
+                    add(entry.path)  # 命中后不再深入 (游戏数据目录很大)
+                    continue
+                if name in skip_names or level >= max_depth:
+                    continue
+                walk(Path(entry.path), level + 1)
+
+        walk(root, 0)
+
+    scan(Path.home(), home_max_depth)
+    for root in (Path("/mnt"), Path("/media"), Path(f"/run/media/{getpass.getuser()}")):
+        if root.is_dir():
+            scan(root, media_max_depth)
+
+    type_order = {"linux": 0, "both": 1, "windows": 2}
+    found.sort(key=lambda p: (type_order.get(detect_build_type(p), 3), str(p)))
+    return found
 
 def get_managed_dir(game_dir: Path) -> Optional[Path]:
     for name in ["ADanceOfFireAndIce_Data/Managed", "A Dance of Fire and Ice_Data/Managed"]:
@@ -66,25 +175,27 @@ def get_managed_dir(game_dir: Path) -> Optional[Path]:
     return None
 
 def check_system_cjk_fonts() -> List[str]:
-    """Detect installed CJK fonts on the host system."""
+    """Detect installed fonts that actually cover CJK (fc-list lang=zh).
+
+    注意：DejaVu Sans 不含 CJK 字形，只能作为最终兜底，不能排在前位。
+    """
     preferred = [
-        "DejaVu Sans",
-        "Noto Sans CJK SC",
-        "WenQuanYi Micro Hei",
-        "WenQuanYi Zen Hei",
-        "Microsoft YaHei",
-        "SimHei",
-        "Source Han Sans CN"
+        "Noto Sans CJK SC", "Noto Sans CJK TC", "Noto Sans CJK JP",
+        "Source Han Sans SC", "Source Han Sans CN",
+        "WenQuanYi Micro Hei", "WenQuanYi Zen Hei",
+        "Microsoft YaHei", "PingFang SC", "Malgun Gothic",
+        "Droid Sans Fallback", "AR PL UMing CN",
     ]
-    detected = []
+    zh_families: List[str] = []
     try:
-        out = subprocess.check_output(["fc-list", ":", "family"], stderr=subprocess.DEVNULL).decode("utf-8", errors="ignore")
-        families = set(f.strip() for line in out.splitlines() for f in line.split(","))
-        for p in preferred:
-            if p in families:
-                detected.append(p)
+        out = subprocess.check_output(["fc-list", ":lang=zh", "family"],
+                                      stderr=subprocess.DEVNULL).decode("utf-8", errors="ignore")
+        zh_families = sorted({f.strip() for line in out.splitlines() for f in line.split(",") if f.strip()})
     except Exception:
-        detected = ["DejaVu Sans"]
+        pass
+
+    detected = [p for p in preferred if p in zh_families]
+    detected += [f for f in zh_families if f not in detected]
     return detected if detected else ["DejaVu Sans"]
 
 class AdoFaiToolkit:
@@ -105,8 +216,13 @@ class AdoFaiToolkit:
         injected = False
         if self.core_module.is_file():
             try:
+                tail = b""
                 with open(self.core_module, "rb") as f:
-                    injected = b"UnityModManager" in f.read()
+                    for chunk in iter(lambda: f.read(1 << 20), b""):
+                        if b"UnityModManager" in tail + chunk:
+                            injected = True
+                            break
+                        tail = chunk[-64:]
             except Exception:
                 pass
 
@@ -144,7 +260,7 @@ class AdoFaiToolkit:
         print(f" • 核心备份文件: {bk_str}")
 
         mod_str = f"{C_GREEN}已就绪 (v1.0.0){C_RESET}" if st['mod_installed'] else f"{C_RED}未安装{C_RESET}"
-        print(f" • LinuxNativeFix 模组: {mod_str}")
+        print(f" • LinuxCrashFix 模组: {mod_str}")
 
         print(f" • 当前 UMM 字体: {C_MAGENTA}{st['ui_font']}{C_RESET}")
         print(f" • 推荐系统字体: {', '.join(st['system_fonts'][:3])}")
@@ -177,6 +293,10 @@ class AdoFaiToolkit:
     def install_mod(self) -> bool:
         """Install LinuxCrashFix mod files into Mods/LinuxCrashFix/."""
         dist_mod = self.root_dir / "dist" / "LinuxCrashFix"
+        # 用户目录下的本地构建优先 (deb 安装到 /usr 后 dist 只读)
+        user_dist = Path.home() / ".local/share/adofai-linux-fix/dist/LinuxCrashFix"
+        if user_dist.is_dir():
+            dist_mod = user_dist
         target_mod = self.mods_dir / "LinuxCrashFix"
 
         if not dist_mod.is_dir():
@@ -238,6 +358,25 @@ class AdoFaiToolkit:
         print(f" • 中文字体方块乱码消除: {C_GREEN}已配置 ({st['ui_font']}){C_RESET}")
         print(f"\n{C_YELLOW}您现在可以直接启动 ADOFAI 游戏！{C_RESET}\n")
 
+def launch_gui(game_dir: Path) -> bool:
+    """启动 GTK4 模组管理器（adofai_modmgr.py）。"""
+    try:
+        import gi  # noqa: F401
+    except ImportError:
+        print(f"{C_RED}[-] 未安装 PyGObject，无法打开图形界面。{C_RESET}")
+        print("    Ubuntu/Debian: sudo apt install python3-gi gir1.2-gtk-4.0")
+        return False
+    try:
+        subprocess.Popen([sys.executable, str(Path(__file__).parent / "adofai_modmgr.py"),
+                          "--game", str(game_dir)],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print(f"{C_GREEN}[+] 图形界面已启动（模组拖拽管理器）。{C_RESET}")
+        return True
+    except Exception as ex:
+        print(f"{C_RED}[-] 图形界面启动失败: {ex}{C_RESET}")
+        return False
+
+
 def interactive_menu(toolkit: AdoFaiToolkit):
     while True:
         toolkit.print_status()
@@ -247,9 +386,10 @@ def interactive_menu(toolkit: AdoFaiToolkit):
         print(f" {C_CYAN}[3]{C_RESET} 修复中文字体 (解决 UMM 方块字乱码)")
         print(f" {C_CYAN}[4]{C_RESET} 重新从源码编译模组 (Build from Source)")
         print(f" {C_CYAN}[5]{C_RESET} 查看当前详细诊断信息")
+        print(f" {C_MAGENTA}[6]{C_RESET} 打开图形界面 (模组拖拽安装 / 启用禁用 / 卸载)")
         print(f" {C_RED}[0]{C_RESET} 退出程序")
 
-        choice = input(f"\n{C_BOLD}请输入选项 [1-5, 0]: {C_RESET}").strip()
+        choice = input(f"\n{C_BOLD}请输入选项 [1-6, 0]: {C_RESET}").strip()
         if choice == "1":
             toolkit.full_auto_setup()
             input(f"\n{C_YELLOW}按回车键继续...{C_RESET}")
@@ -271,6 +411,9 @@ def interactive_menu(toolkit: AdoFaiToolkit):
         elif choice == "5":
             toolkit.print_status()
             input(f"\n{C_YELLOW}按回车键继续...{C_RESET}")
+        elif choice == "6":
+            launch_gui(toolkit.game_dir)
+            input(f"\n{C_YELLOW}按回车键继续...{C_RESET}")
         elif choice == "0":
             print("感谢使用，再见！")
             break
@@ -285,8 +428,13 @@ def main():
     if len(sys.argv) > 1 and not sys.argv[1].startswith("--"):
         game_dir = Path(sys.argv[1])
 
-    if not game_dir or not game_dir.is_dir():
+    cli_mode = any(a in ("--auto", "--all", "--build", "--install", "--font") for a in sys.argv)
+
+    if not game_dir or not Path(game_dir).is_dir():
         print(f"{C_RED}[-] 未能自动识别到《冰与火之舞》(ADOFAI) 游戏目录。{C_RESET}")
+        if cli_mode:
+            print(f"{C_RED}[-] 非交互模式下已退出。请设置 ADOFAI_PATH 环境变量或以参数形式传入游戏路径。{C_RESET}")
+            sys.exit(1)
         inp = input(f"{C_BOLD}请输入您的游戏安装完整路径: {C_RESET}").strip()
         if inp:
             game_dir = Path(inp).expanduser().resolve()
