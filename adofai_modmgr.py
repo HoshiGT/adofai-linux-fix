@@ -673,8 +673,12 @@ class ModManager:
         if not exe.is_file() and not self._build_injector():
             return None, tr("未找到 dist/UMMInjector.exe 且自动编译失败 (需要 mono 与游戏内 dnlib.dll)")
         try:
+            # dnlib 随游戏内 UMM 分发 (deb 不打包): 经 MONO_PATH 让 mono 解析
+            env = {**os.environ,
+                   "MONO_PATH": str(self.managed / "UnityModManager")}
             r = subprocess.run(["mono", str(exe), command, str(self.game_dir)],
-                               capture_output=True, text=True, timeout=120)
+                               capture_output=True, text=True, timeout=120,
+                               env=env)
         except Exception as ex:
             return None, tr("运行注入器失败: {ex}", ex=ex)
         for line in (r.stdout or "").splitlines():

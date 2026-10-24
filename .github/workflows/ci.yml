@@ -55,4 +55,8 @@ jobs:
             "dist/LinuxCrashFix-${GITHUB_REF_NAME}.zip" \
             "packaging/deb/build/adofai-linux-fix_*.deb" \
             --title "LinuxCrashFix ${GITHUB_REF_NAME}" \
-            --generate-notes
+            --generate-notes \
+          || gh release upload "$GITHUB_REF_NAME" \
+            "dist/LinuxCrashFix-${GITHUB_REF_NAME}.zip" \
+            "packaging/deb/build/adofai-linux-fix_*.deb" \
+            --clobber
