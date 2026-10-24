@@ -262,32 +262,25 @@ namespace LinuxCrashFix
         private static int activeSliderId = -1;
         private static readonly Dictionary<int, string> textBuffers = new Dictionary<int, string>();
 
-        public static bool Prefix(UnityModManager.UI __instance, int tabId, ref UnityAction buttons)
+    public static bool Prefix(UnityModManager.UI __instance, int tabId, ref UnityAction buttons)
+    {
+        if (tabId != 2 || settingsBroken) return true;
+        try
         {
-            if (tabId == 2) // Settings Tab
-            {
-                try
-                {
-                    DrawSettingsTab(__instance, ref buttons);
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogException(ex);
-                    return true;
-                }
-            }
-            return true;
+            DrawSettingsTab(__instance, ref buttons);
+            return false;
         }
+        catch (Exception ex)
+        {
+            // 本帧布局可能已不平衡: 禁用自定义绘制 (返回 false 避免叠加绘制),
+            // 下个帧起回退 UMM 原版设置页 —— IMGUI 状态在帧边界自动恢复。
+            settingsBroken = true;
+            Debug.LogException(ex);
+            return false;
+        }
+    }
 
-        public static Exception Finalizer(Exception __exception)
-        {
-            if (__exception is ArgumentException && __exception.Message.Contains("Getting control"))
-            {
-                return null;
-            }
-            return __exception;
-        }
+    private static bool settingsBroken = false;
 
         private static void DrawSettingsTab(UnityModManager.UI ui, ref UnityAction buttons)
         {
@@ -560,7 +553,9 @@ namespace LinuxCrashFix
             // Slider Track Rect
             Rect trackRect = GUILayoutUtility.GetRect(trackWidth, trackHeight, GUILayout.Width(trackWidth), GUILayout.Height(trackHeight));
 
-            int controlID = GUIUtility.GetControlID(sliderId * 1000 + 555, FocusType.Passive, trackRect);
+            // 自动 ControlID: 避免与同窗口其它 IMGUI 内容 (如 KeyViewer 设置) 的
+            // 显式 ID 碰撞导致 "Getting control" 事件失步
+            int controlID = GUIUtility.GetControlID(FocusType.Passive, trackRect);
             Event e = Event.current;
 
             if (e != null)
