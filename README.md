@@ -15,7 +15,7 @@
 <a name="中文文档"></a>
 ## 中文说明
 
-### 📌 痛点背景与修复原理
+### 痛点背景与修复原理
 
 在 Linux 原生环境运行 ADOFAI 时，玩家与模组开发者通常会遭遇以下四大痛点：
 
@@ -28,7 +28,7 @@
 
 ---
 
-### 🚀 快速使用
+### 快速使用
 
 #### 方式零：deb 包（Debian / Ubuntu 系）
 
@@ -64,7 +64,7 @@ cd adofai-linux-fix
 
 ---
 
-### 🛠️ 工具箱功能 (`adofai_fix.py`)
+### 工具箱功能 (`adofai_fix.py`)
 
 本套件内置了零第三方依赖的 Python 控制台应用程序：
 - **`[1] 一键全自动修复`**：自动完成游戏路径检测、核心备份、模组部署、字体修正与白名单绕过。
@@ -74,7 +74,7 @@ cd adofai-linux-fix
 - **`[5] 环境诊断检测`**：检查 UMM 注入状态、核心文件备份与驱动信息。
 - **`[6] 打开图形界面`**：启动下方拖拽式模组管理器。
 
-### 🖱️ 图形界面模组管理器 (`adofai_modmgr.py`)
+### 图形界面模组管理器 (`adofai_modmgr.py`)
 
 基于 GTK4（系统自带 PyGObject，零 pip 依赖）的 UMM 全功能管理前端，三个标签页对应 UMM Windows 安装器风格：
 
@@ -93,7 +93,7 @@ cd adofai-linux-fix
 <a name="english-documentation"></a>
 ## English Documentation
 
-### 📌 Overview
+### Overview
 
 Running *A Dance of Fire and Ice* (ADOFAI) natively on Linux or Steam Deck often encounters platform-specific issues caused by Unity's IMGUI loop, shader warmup driver incompatibilities, and strict third-party mod validation.
 
@@ -103,7 +103,7 @@ This toolkit provides an all-in-one fix and injection suite:
 3. **Together (TUF) Multiplayer Whitelist Bypass**: Dynamically intercepts the decrypted `Together.dll` in memory, adds `LinuxCrashFix` to `AllowedMods`, clears `CapturedMods`, and suppresses `CaptureDisallowedMods()`.
 4. **CJK Font Fix**: Auto-configures native Chinese/Japanese/Korean fallback fonts (DejaVu Sans / Noto Sans CJK / WenQuanYi) to prevent tofu blocks (`□□□`).
 
-### 📦 Installation
+### Installation
 
 #### Method 0: deb package (Debian / Ubuntu based)
 
@@ -125,14 +125,14 @@ cd adofai-linux-fix
 #### Method 2: Manual Installation via UMM
 - Grab `dist/LinuxCrashFix-v1.0.0.zip` and drop it into the **Mods** tab in Unity Mod Manager (`Ctrl+F10`).
 
-### 🔨 Building from Source
+### Building from Source
 
 Requires Mono C# compiler (`mcs`):
 ```bash
 ./scripts/build.sh
 ```
 
-### 🖱️ GUI Mod Manager
+### GUI Mod Manager
 
 A GTK4 (PyGObject, zero pip dependencies) full-featured UMM front-end styled after the UMM Windows installer, localized in **中文 / English / 한국어** (follows the system locale, switchable live from the header bar, persisted). Three tabs: **Mods** (multi-column list with enable toggles, drag-and-drop zip/folder install, trash-safe uninstall), **Log** (diagnostics + timestamped operation log) and **Installer** (game directory picker with **global search** — common paths, every Steam library from `libraryfolders.vdf`, and bounded HOME/mount-point scans; results labeled Linux-native / Windows / dual build; multiple hits present a chooser, and the choice persists — plus inject / unpatch / restore UMM into the game's core assembly with automatic `.original_` backup; runtime files can be installed from a UMM zip).
 
@@ -144,7 +144,7 @@ CLI equivalents: `--list`, `--install <zip>`, `--toggle <Id> on|off`, `--remove 
 
 ---
 
-### 📂 Project Structure
+### Project Structure
 
 ```
 adofai-linux-fix/
@@ -168,7 +168,7 @@ adofai-linux-fix/
 
 ---
 
-### 📄 License
+### License
 
 This project is licensed under the [MIT License](LICENSE).
 Created with ❤️ for the Linux & Steam Deck rhythm gaming community.
